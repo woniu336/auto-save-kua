@@ -1,12 +1,8 @@
-# 字幕文件
-*.srt
-*.vtt
-*.sub
-*.idx
-*.ass
-*.ssa
-*.smi
-*.sami
-*.usf
-*.ssf
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# 项目相关
+*.log
