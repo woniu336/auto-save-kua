@@ -1,6 +1,12 @@
 
 
 
+bug:
+
+1. 配置通知的时候，第一次保存不成功，需要重新配置
+
+2. 定时任务没生效，可以配合脚本更新，见文档下方
+
 
 <br>
 
@@ -51,3 +57,16 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/open_shell/main/save_kua.
 
 日志文件: /root/auto-save-kua/simple_admin/app.log
 
+
+## 定时追更任务
+
+```
+(crontab -l 2>/dev/null; echo "0 8,12,20 * * * cd /root/auto-save-kua && /usr/bin/python3 quark_auto_save.py >> /root/auto-save-kua/simple_admin/cron.log 2>&1") | crontab -
+```
+
+查看日志
+```
+tail  /root/auto-save-kua/simple_admin/cron.log
+```
+
+<br>
