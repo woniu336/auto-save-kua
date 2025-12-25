@@ -1,0 +1,12 @@
+# 字幕文件
+*.srt
+*.vtt
+*.sub
+*.idx
+*.ass
+*.ssa
+*.smi
+*.sami
+*.usf
+*.ssf
+
