@@ -96,98 +96,20 @@ async def fetch(session: aiohttp.ClientSession, method: str, url: str, **kwargs)
                         "raw_response": text[:500]
                     }
     except aiohttp.ClientResponseError as e:
-        # 处理401/403错误，尝试使用不同的fr参数
-        # 将URL转换为字符串进行处理
+        # 简化错误处理，不再检查fr参数切换
         url_str = str(url)
         # 如果URL是URL对象，提取实际的URL字符串
-        # 从类似 "URL('https://...')" 的字符串中提取URL
         import re
         url_match = re.search(r"URL\('([^']+)'\)", url_str)
         if url_match:
             url_str = url_match.group(1)
         
-        # 添加调试日志
-        logger.debug(f"DEBUG: 错误状态码 {e.status}, URL字符串: {url_str}")
-        logger.debug(f"DEBUG: URL对象类型: {type(url)}")
-        logger.debug(f"DEBUG: URL对象repr: {repr(url)}")
-        logger.debug(f"DEBUG: 检查 'fr=h5' 是否在URL中: {'fr=h5' in url_str}")
-        
-        # 更准确地检查fr=h5参数
-        # 首先检查URL字符串中是否包含fr=h5
-        has_fr_h5_in_str = 'fr=h5' in url_str
-        # 然后检查URL对象中是否包含fr=h5
-        has_fr_h5_in_url = False
-        if hasattr(url, 'query'):
-            has_fr_h5_in_url = 'fr=h5' in str(url.query)
-        elif hasattr(url, 'query_string'):
-            has_fr_h5_in_url = 'fr=h5' in str(url.query_string)
-        
-        # 检查kwargs中的params参数是否包含fr=h5
-        has_fr_h5_in_params = False
-        params = kwargs.get('params', {})
-        if isinstance(params, dict):
-            has_fr_h5_in_params = params.get('fr') == 'h5'
-        elif isinstance(params, str):
-            has_fr_h5_in_params = 'fr=h5' in params
-        
-        logger.debug(f"DEBUG: has_fr_h5_in_str: {has_fr_h5_in_str}, has_fr_h5_in_url: {has_fr_h5_in_url}, has_fr_h5_in_params: {has_fr_h5_in_params}")
-        
-        if e.status in (401, 403) and (has_fr_h5_in_str or has_fr_h5_in_url or has_fr_h5_in_params):
-            logger.warning(f"请求失败 (状态码 {e.status}): {method} {url_str} - 尝试使用fr=pc参数")
-            
-            # 修改URL中的fr参数
-            new_url = url_str
-            if 'fr=h5' in url_str:
-                new_url = url_str.replace('fr=h5', 'fr=pc')
-            elif '?fr=h5&' in url_str:
-                new_url = url_str.replace('?fr=h5&', '?fr=pc&')
-            elif '&fr=h5&' in url_str:
-                new_url = url_str.replace('&fr=h5&', '&fr=pc&')
-            elif '&fr=h5' in url_str:
-                new_url = url_str.replace('&fr=h5', '&fr=pc')
-            
-            # 也需要修改params中的fr参数
-            params = kwargs.get('params', {})
-            if isinstance(params, dict) and params.get('fr') == 'h5':
-                params = params.copy()
-                params['fr'] = 'pc'
-                kwargs['params'] = params
-            
-            # 如果URL中没有查询参数，添加fr=pc
-            if '?' not in url_str and 'fr=' not in url_str:
-                if '?' in new_url:
-                    new_url = f"{new_url}&fr=pc"
-                else:
-                    new_url = f"{new_url}?fr=pc"
-            
-            # 重试请求
-            try:
-                async with session.request(method, new_url, **kwargs) as response:
-                    response.raise_for_status()
-                    try:
-                        return await response.json()
-                    except (aiohttp.ContentTypeError, json.JSONDecodeError):
-                        text = await response.text()
-                        logger.error(f"重试请求响应不是JSON格式: {method} {new_url} - 响应内容: {text[:200]}")
-                        return {
-                            "code": -1,
-                            "message": f"重试请求响应不是有效的JSON格式: {text[:100]}...",
-                            "raw_response": text[:500]
-                        }
-            except Exception as retry_e:
-                logger.error(f"重试请求失败: {method} {new_url} - {retry_e}")
-                return {
-                    "code": e.status,
-                    "message": f"请求失败: {method} {url_str} - {e}, 重试也失败: {retry_e}",
-                    "status": e.status
-                }
-        else:
-            logger.error(f"请求失败: {method} {url_str} - {e}")
-            return {
-                "code": e.status,
-                "message": f"请求失败: {method} {url_str} - {e}",
-                "status": e.status
-            }
+        logger.error(f"请求失败: {method} {url_str} - {e}")
+        return {
+            "code": e.status,
+            "message": f"请求失败: {method} {url_str} - {e}",
+            "status": e.status
+        }
     except Exception as e:
         logger.error(f"请求失败: {method} {url} - {e}")
         # 对于非ClientResponseError异常，返回一个包含错误信息的字典
@@ -394,7 +316,7 @@ class Quark:
             return False
 
     async def get_growth_info(self, session: aiohttp.ClientSession) -> Union[Dict[str, Any], bool]:
-        url = "https://drive-m.quark.cn/1/clouddrive/capacity/growth/info"
+        url = "https://drive-pc.quark.cn/1/clouddrive/capacity/growth/info"
         querystring = {
             "pr": "ucpro",
             "fr": "android",
@@ -412,7 +334,7 @@ class Quark:
             return False
 
     async def get_growth_sign(self, session: aiohttp.ClientSession) -> Tuple[bool, Union[int, str]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign"
+        url = "https://drive-pc.quark.cn/1/clouddrive/capacity/growth/sign"
         querystring = {
             "pr": "ucpro",
             "fr": "android",
@@ -449,8 +371,8 @@ class Quark:
             return None
 
     async def get_stoken(self, session: aiohttp.ClientSession, pwd_id: str) -> Tuple[bool, str]:
-        url = "https://drive-m.quark.cn/1/clouddrive/share/sharepage/token"
-        querystring = {"pr": "ucpro", "fr": "h5" if self.st else "pc"}
+        url = "https://drive-pc.quark.cn/1/clouddrive/share/sharepage/token"
+        querystring = {"pr": "ucpro", "fr": "pc"}
         payload = {"pwd_id": pwd_id, "passcode": ""}
         headers = self.common_headers()
         response = await fetch(session, "POST", url, json=payload, headers=headers, params=querystring)
@@ -480,10 +402,10 @@ class Quark:
         file_list = []
         page = 1
         while True:
-            url = "https://drive-m.quark.cn/1/clouddrive/share/sharepage/detail"
+            url = "https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail"
             querystring = {
                 "pr": "ucpro",
-                "fr": "h5" if self.st else "pc",
+                "fr": "pc",
                 "pwd_id": pwd_id,
                 "stoken": stoken,
                 "pdir_fid": pdir_fid,
@@ -519,8 +441,8 @@ class Quark:
         while file_paths:
             batch = file_paths[:50]
             file_paths = file_paths[50:]
-            url = "https://drive-m.quark.cn/1/clouddrive/file/info/path_list"
-            querystring = {"pr": "ucpro", "fr": "h5" if self.st else "pc"}
+            url = "https://drive-pc.quark.cn/1/clouddrive/file/info/path_list"
+            querystring = {"pr": "ucpro", "fr": "pc"}
             payload = {"file_path": batch, "namespace": "0"}
             headers = self.common_headers()
             response = await fetch(session, "POST", url, json=payload, headers=headers, params=querystring)
@@ -538,10 +460,10 @@ class Quark:
         file_list = []
         page = 1
         while True:
-            url = "https://drive-m.quark.cn/1/clouddrive/file/sort"
+            url = "https://drive-pc.quark.cn/1/clouddrive/file/sort"
             querystring = {
                 "pr": "ucpro",
-                "fr": "h5" if self.st else "pc",
+                "fr": "pc",
                 "uc_param_str": "",
                 "pdir_fid": pdir_fid,
                 "_page": page,
@@ -562,10 +484,10 @@ class Quark:
         return file_list
 
     async def save_file(self, session: aiohttp.ClientSession, fid_list: List[str], fid_token_list: List[str], to_pdir_fid: str, pwd_id: str, stoken: str) -> Optional[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/share/sharepage/save"
+        url = "https://drive-pc.quark.cn/1/clouddrive/share/sharepage/save"
         querystring = {
             "pr": "ucpro",
-            "fr": "h5" if self.st else "pc",
+            "fr": "pc",
             "uc_param_str": "",
             "app": "clouddrive",
             "__dt": int(random.uniform(1, 5) * 60 * 1000),
@@ -585,8 +507,8 @@ class Quark:
         return response
 
     async def mkdir(self, session: aiohttp.ClientSession, dir_path: str) -> Optional[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/file"
-        querystring = {"pr": "ucpro", "fr": "h5" if self.st else "pc", "uc_param_str": ""}
+        url = "https://drive-pc.quark.cn/1/clouddrive/file"
+        querystring = {"pr": "ucpro", "fr": "pc", "uc_param_str": ""}
         payload = {
             "pdir_fid": "0",
             "file_name": "",
@@ -598,28 +520,28 @@ class Quark:
         return response
 
     async def rename(self, session: aiohttp.ClientSession, fid: str, file_name: str) -> Optional[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/file/rename"
-        querystring = {"pr": "ucpro", "fr": "h5" if self.st else "pc", "uc_param_str": ""}
+        url = "https://drive-pc.quark.cn/1/clouddrive/file/rename"
+        querystring = {"pr": "ucpro", "fr": "pc", "uc_param_str": ""}
         payload = {"fid": fid, "file_name": file_name}
         headers = self.common_headers()
         response = await fetch(session, "POST", url, json=payload, headers=headers, params=querystring)
         return response
 
     async def delete(self, session: aiohttp.ClientSession, filelist: List[str]) -> Optional[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/file/delete"
-        querystring = {"pr": "ucpro", "fr": "h5" if self.st else "pc", "uc_param_str": ""}
+        url = "https://drive-pc.quark.cn/1/clouddrive/file/delete"
+        querystring = {"pr": "ucpro", "fr": "pc", "uc_param_str": ""}
         payload = {"action_type": 2, "filelist": filelist, "exclude_fids": []}
         headers = self.common_headers()
         response = await fetch(session, "POST", url, json=payload, headers=headers, params=querystring)
         return response
 
     async def recycle_list(self, session: aiohttp.ClientSession, page: int = 1, size: int = 30) -> List[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/file/recycle/list"
+        url = "https://drive-pc.quark.cn/1/clouddrive/file/recycle/list"
         querystring = {
             "_page": page,
             "_size": size,
             "pr": "ucpro",
-            "fr": "h5" if self.st else "pc",
+            "fr": "pc",
             "uc_param_str": "",
         }
         headers = self.common_headers()
@@ -630,8 +552,8 @@ class Quark:
             return []
 
     async def recycle_remove(self, session: aiohttp.ClientSession, record_list: List[str]) -> Optional[Dict[str, Any]]:
-        url = "https://drive-m.quark.cn/1/clouddrive/file/recycle/remove"
-        querystring = {"uc_param_str": "", "fr": "h5" if self.st else "pc", "pr": "ucpro"}
+        url = "https://drive-pc.quark.cn/1/clouddrive/file/recycle/remove"
+        querystring = {"uc_param_str": "", "fr": "pc", "pr": "ucpro"}
         payload = {
             "select_mode": 2,
             "record_list": record_list,
@@ -875,10 +797,10 @@ class Quark:
     async def query_task(self, session: aiohttp.ClientSession, task_id: str) -> Optional[Dict[str, Any]]:
         retry_index = 0
         while True:
-            url = "https://drive-m.quark.cn/1/clouddrive/task"
+            url = "https://drive-pc.quark.cn/1/clouddrive/task"
             querystring = {
                 "pr": "ucpro",
-                "fr": "h5" if self.st else "pc",
+                "fr": "pc",
                 "uc_param_str": "",
                 "task_id": task_id,
                 "retry_index": retry_index,
