@@ -7,6 +7,15 @@ bug:
 2. 定时任务没生效，可以配合脚本更新，见文档下方
 
 
+避免安装不成功
+
+```
+mkdir -p ~/.config/pip
+echo "[global]
+break-system-packages = true" > ~/.config/pip/pip.conf
+```
+
+
 
 ## 一键部署脚本
 
@@ -38,6 +47,13 @@ rm -rf ~/.config/pip
 ## 帮助
 
 ./save_kua.sh -h
+```
+
+
+移除版本不兼容警告
+
+```
+pip3 install "requests>=2.31.0" "urllib3>=2.0.0,<3" "charset-normalizer>=3.0.0,<4"
 ```
 
 
