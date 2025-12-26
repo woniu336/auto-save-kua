@@ -15,6 +15,12 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/open_shell/main/save_kua.
 ```
 
 
+恢复系统保护
+
+```
+rm -rf ~/.config/pip
+```
+
 
 常用命令
 
